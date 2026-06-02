@@ -1,0 +1,24 @@
+# Virtual environments
+venv/
+myvenv/
+
+# Secrets and local configuration
+.env
+.env.local
+.env.production
+.env.development
+.env.staging
+
+# Python system cache
+__pycache__/
+*.py[cod]
+*$py.class
+
+# State and logs
+state.json
+*.log
+cache/
+
+# Editor/IDE configs
+.vscode/
+.idea/

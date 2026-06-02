@@ -1,0 +1,15 @@
+[Unit]
+Description=Antigravity Telegram Bot Bridge
+After=network.target
+
+[Service]
+Type=simple
+User=mgksahan
+WorkingDirectory=/home/mgksahan/antigravity-telegram-bot
+ExecStart=/home/mgksahan/myvenv/bin/python3 /home/mgksahan/antigravity-telegram-bot/main.py
+Restart=always
+RestartSec=5
+Environment=PYTHONUNBUFFERED=1
+
+[Install]
+WantedBy=multi-user.target
