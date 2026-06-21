@@ -215,10 +215,47 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
         logger.warning(f"Drop unauthorized message from user_id: {user_id}, chat_id: {chat_id}")
         return
 
-    if not update.message or not update.message.text:
+    if not update.message:
         return
 
-    prompt_text = update.message.text
+    image_path = None
+    prompt_text = ""
+
+    if update.message.text:
+        prompt_text = update.message.text
+    elif update.message.photo:
+        try:
+            photo_file = await update.message.photo[-1].get_file()
+            image_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "telegram_image.jpg")
+            await photo_file.download_to_drive(image_path)
+            caption = update.message.caption or ""
+            if caption:
+                prompt_text = f"Image attached: telegram_image.jpg\n\nUser prompt: {caption}"
+            else:
+                prompt_text = "Image attached: telegram_image.jpg\n\nPlease analyze this image."
+        except Exception as e:
+            logger.error(f"Error downloading photo: {e}")
+            await update.message.reply_text("⚠️ Failed to download the attached photo.")
+            return
+    elif update.message.document and update.message.document.mime_type and update.message.document.mime_type.startswith("image/"):
+        try:
+            doc_file = await update.message.document.get_file()
+            ext = os.path.splitext(update.message.document.file_name)[1] or ".jpg"
+            image_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), f"telegram_image{ext}")
+            await doc_file.download_to_drive(image_path)
+            filename = f"telegram_image{ext}"
+            caption = update.message.caption or ""
+            if caption:
+                prompt_text = f"Image attached: {filename}\n\nUser prompt: {caption}"
+            else:
+                prompt_text = f"Image attached: {filename}\n\nPlease analyze this image."
+        except Exception as e:
+            logger.error(f"Error downloading document image: {e}")
+            await update.message.reply_text("⚠️ Failed to download the attached image file.")
+            return
+    else:
+        return
+
     logger.info(f"Received prompt from user: {user_id}")
 
     # Concurrency check: check if lock is already held
@@ -357,7 +394,7 @@ def main() -> None:
     application.add_handler(CommandHandler("start", start_command))
     application.add_handler(CommandHandler("help", start_command))
     application.add_handler(CommandHandler("reset", reset_command))
-    application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
+    application.add_handler(MessageHandler((filters.TEXT | filters.PHOTO | filters.Document.IMAGE) & ~filters.COMMAND, handle_message))
 
     # Start long polling
     logger.info(f"Polling started. Access restricted to User ID: {ALLOWED_USER_ID}")
